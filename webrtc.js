@@ -1,6 +1,12 @@
 let peerConnection;
 let dataChannel;
-let isHost = false; // Теперь isHost объявляется здесь
+let isHost = false;
+
+// Функция для обновления статуса соединения в интерфейсе
+function updateConnectionStatus(status) {
+    const statusElement = document.getElementById('connectionStatus');
+    statusElement.innerText = `Статус соединения: ${status}`;
+}
 
 // Конфигурация STUN сервера для WebRTC
 const configuration = {
@@ -13,33 +19,41 @@ function createPeerConnection() {
 
     // Слушаем изменения состояния соединения
     peerConnection.onconnectionstatechange = () => {
-        if (peerConnection.connectionState === 'connected') {
+        const connectionState = peerConnection.connectionState;
+        console.log(`Состояние соединения: ${connectionState}`);
+        updateConnectionStatus(`Состояние соединения: ${connectionState}`);
+
+        if (connectionState === 'connected') {
             console.log('Соединение успешно установлено');
             alert('Соединение успешно установлено!');
         }
     };
 
-    // ICE кандидаты
+    // Логируем ICE-кандидатов
     peerConnection.onicecandidate = event => {
         if (event.candidate) {
             console.log('Новый ICE-кандидат:', event.candidate);
+        } else {
+            console.log('Все ICE-кандидаты переданы');
         }
     };
 
-    // Получаем канал данных от другого игрока
+    // Обрабатываем создание канала данных
     peerConnection.ondatachannel = event => {
+        console.log('Канал данных получен у гостя');
         dataChannel = event.channel;
 
-        // Сообщаем, что канал данных открыт
+        // Обработка открытия канала данных
         dataChannel.onopen = () => {
-            console.log('Канал данных открыт!');
-            alert('Канал данных открыт, соединение установлено!');
+            console.log('Канал данных открыт (гость)');
+            updateConnectionStatus('Канал данных открыт (гость)');
+            alert('Канал данных открыт (гость), соединение установлено!');
         };
 
-        // Сообщаем, что канал данных закрыт
+        // Обработка закрытия канала данных
         dataChannel.onclose = () => {
-            console.log('Канал данных закрыт');
-            alert('Канал данных закрыт!');
+            console.log('Канал данных закрыт (гость)');
+            updateConnectionStatus('Канал данных закрыт');
         };
 
         // Получаем сообщения от другого игрока
@@ -49,26 +63,28 @@ function createPeerConnection() {
     return peerConnection;
 }
 
-// Обработка сообщений
+// Обработка сообщений через канал данных
 function handleMessage(event) {
     const data = JSON.parse(event.data);
     console.log('Полученные данные:', data);
 }
 
-// Создаем канал данных для передачи сообщений между игроками
+// Создаем канал данных (для хоста)
 function createDataChannel() {
     dataChannel = peerConnection.createDataChannel('gameData');
+    console.log('Канал данных создан (хост)');
 
-    // Сообщаем, что канал данных открыт
+    // Обработка открытия канала данных
     dataChannel.onopen = () => {
-        console.log('Канал данных открыт!');
-        alert('Канал данных открыт, соединение установлено!');
+        console.log('Канал данных открыт (хост)');
+        updateConnectionStatus('Канал данных открыт (хост)');
+        alert('Канал данных открыт (хост), соединение установлено!');
     };
 
-    // Сообщаем, что канал данных закрыт
+    // Обработка закрытия канала данных
     dataChannel.onclose = () => {
-        console.log('Канал данных закрыт');
-        alert('Канал данных закрыт!');
+        console.log('Канал данных закрыт (хост)');
+        updateConnectionStatus('Канал данных закрыт');
     };
 
     dataChannel.onmessage = handleMessage;
@@ -86,6 +102,8 @@ document.getElementById('startButton').onclick = async () => {
     await peerConnection.setLocalDescription(offer);
 
     document.getElementById('offer').value = JSON.stringify(offer);
+    updateConnectionStatus('Ожидание ответа гостя...');
+    console.log('Предложение (offer) создано:', offer);
 };
 
 // Гость: присоединяется к сессии
@@ -99,21 +117,25 @@ document.getElementById('joinButton').onclick = async () => {
     }
 
     try {
-        const offer = JSON.parse(offerText);
+        const offer = JSON.parse(offerText); // Проверяем, что содержимое поля - корректный JSON
         peerConnection = createPeerConnection();
         await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+        console.log('Предложение принято, создание ответа (answer)...');
 
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
 
         document.getElementById('answer').value = JSON.stringify(answer);
+        updateConnectionStatus('Ответ отправлен хосту, ожидание соединения...');
+        console.log('Ответ (answer) отправлен:', answer);
     } catch (error) {
-        console.error('Ошибка при парсинге offer:', error);
+        console.error('Ошибка при обработке offer:', error);
         alert('Неверный формат offer. Убедитесь, что вы вставили правильное предложение.');
     }
 };
 
-// Установить ответ хоста
+// Хост: подтверждает ответ (answer)
 document.getElementById('answer').oninput = async () => {
     const answerText = document.getElementById('answer').value.trim();
 
@@ -123,10 +145,13 @@ document.getElementById('answer').oninput = async () => {
     }
 
     try {
-        const answer = JSON.parse(answerText);
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        const answer = JSON.parse(answerText); // Пробуем распарсить JSON
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(answer)); // Хост применяет answer
+        console.log('Ответ принят и соединение установлено');
+        alert('Ответ принят и соединение установлено');
+        updateConnectionStatus('Соединение установлено');
     } catch (error) {
-        console.error('Ошибка при парсинге answer:', error);
+        console.error('Ошибка при обработке answer:', error);
         alert('Неверный формат answer. Убедитесь, что вы вставили правильный ответ.');
     }
 };

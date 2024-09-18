@@ -21,7 +21,7 @@ const keys = {
     ArrowDown: false,
     ArrowLeft: false,
     ArrowRight: false,
-    KeyV: false, // Клавиша для выстрела "V"
+    KeyB: false, // Изменяем клавишу для выстрела на "B"
 };
 
 // Создание танка
@@ -43,16 +43,16 @@ tanks.push(createTank(100, 100)); // Противник для синхрони�
 
 // Слушатели событий для клавиш
 document.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyV') {
-        keys.KeyV = true;
+    if (e.code === 'KeyB') {
+        keys.KeyB = true;
     } else if (keys.hasOwnProperty(e.code)) {
         keys[e.code] = true;
     }
 });
 
 document.addEventListener('keyup', (e) => {
-    if (e.code === 'KeyV') {
-        keys.KeyV = false;
+    if (e.code === 'KeyB') {
+        keys.KeyB = false;
     } else if (keys.hasOwnProperty(e.code)) {
         keys[e.code] = false;
     }
@@ -92,7 +92,16 @@ function shootBullet(tankIndex) {
     }
 }
 
-// Обновление положения танка игрока
+// Проверка, не выходит ли танк за границы игрового поля
+function isOutOfBounds(x, y) {
+    return (
+        x < 0 || y < 0 || 
+        x + TANK_WIDTH > canvas.width || 
+        y + TANK_HEIGHT > canvas.height
+    );
+}
+
+// Обновление положения танка игрока с проверкой границ
 function updatePlayerTank() {
     const playerTank = tanks[0];
 
@@ -103,16 +112,20 @@ function updatePlayerTank() {
         const nextX = playerTank.x + Math.cos(playerTank.angle * Math.PI / 180) * playerTank.speed;
         const nextY = playerTank.y + Math.sin(playerTank.angle * Math.PI / 180) * playerTank.speed;
 
-        playerTank.x = nextX;
-        playerTank.y = nextY;
+        if (!isOutOfBounds(nextX, nextY)) { // Проверяем границы
+            playerTank.x = nextX;
+            playerTank.y = nextY;
+        }
     }
 
     if (keys.ArrowDown) {
         const nextX = playerTank.x - Math.cos(playerTank.angle * Math.PI / 180) * playerTank.speed;
         const nextY = playerTank.y - Math.sin(playerTank.angle * Math.PI / 180) * playerTank.speed;
 
-        playerTank.x = nextX;
-        playerTank.y = nextY;
+        if (!isOutOfBounds(nextX, nextY)) { // Проверяем границы
+            playerTank.x = nextX;
+            playerTank.y = nextY;
+        }
     }
 }
 
@@ -174,7 +187,8 @@ function handleMessage(event) {
 function gameLoop() {
     updatePlayerTank();
 
-    if (keys.KeyV) {
+    // В основном игровом цикле стреляем только при нажатии "B"
+    if (keys.KeyB) {
         shootBullet(0); // Стреляет игрок
     }
 
