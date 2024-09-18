@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- <div id="status">Статус: не подключено</div> -->
+    <h1>WebRTC Танковая Арена</h1>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     <div id="controls">
         <button id="startButton">Запустить сессию (хост)</button>
@@ -15,6 +15,8 @@
 
         <textarea id="offer" placeholder="Скопируйте и отправьте это предложение другому игроку"></textarea>
         <textarea id="answer" placeholder="Вставьте сюда ответ"></textarea>
+
+        <button id="applyIceCandidates">Применить ICE-кандидаты</button>
 
         <!-- Добавляем статус соединения -->
         <div id="connectionStatus">Статус соединения: Ожидание...</div>

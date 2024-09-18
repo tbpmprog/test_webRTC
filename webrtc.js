@@ -8,14 +8,51 @@ function updateConnectionStatus(status) {
     statusElement.innerText = `Статус соединения: ${status}`;
 }
 
-// Конфигурация STUN сервера для WebRTC
+// Конфигурация STUN и TURN серверов для WebRTC
 const configuration = {
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] // Используем публичный STUN сервер Google
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' }, // STUN сервер Google
+        { urls: 'stun:stun1.l.google.com:19302' }, 
+        { urls: 'stun:stun2.l.google.com:19302' }, 
+        { urls: 'stun:stun3.l.google.com:19302' }, 
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'stun:stun.services.mozilla.com' }, // STUN сервер Mozilla
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun.l.google.com:5349" },
+        { urls: "stun:stun1.l.google.com:3478" },
+        { urls: "stun:stun1.l.google.com:5349" },
+        { urls: "stun:stun2.l.google.com:19302" },
+        { urls: "stun:stun2.l.google.com:5349" },
+        { urls: "stun:stun3.l.google.com:3478" },
+        { urls: "stun:stun3.l.google.com:5349" },
+        { urls: "stun:stun4.l.google.com:19302" },
+        { urls: "stun:stun4.l.google.com:5349" }
+    ]
 };
 
 // Создаем WebRTC соединение
 function createPeerConnection() {
     peerConnection = new RTCPeerConnection(configuration);
+
+    // Логируем ICE-кандидатов и передаем их другой стороне через текстовые поля
+    peerConnection.onicecandidate = event => {
+        if (event.candidate) {
+            console.log('Новый ICE-кандидат:', event.candidate);
+            document.getElementById('iceCandidates').value += JSON.stringify(event.candidate) + '\n';
+        } else {
+            console.log('Все ICE-кандидаты отправлены');
+        }
+    };
+
+    // Логируем ошибки при передаче ICE-кандидатов
+    peerConnection.onicecandidateerror = event => {
+        console.error('Ошибка передачи ICE-кандидатов:', event);
+    
+        // Игнорируем определённые ошибки STUN-сервера
+        if (event.errorCode === 701) { // Проблема с lookup STUN-сервера (STUN host lookup received error)
+            console.log('STUN сервер недоступен, игнорируем ошибку...');
+        }
+    };
 
     // Слушаем изменения состояния соединения
     peerConnection.onconnectionstatechange = () => {
@@ -26,15 +63,6 @@ function createPeerConnection() {
         if (connectionState === 'connected') {
             console.log('Соединение успешно установлено');
             alert('Соединение успешно установлено!');
-        }
-    };
-
-    // Логируем ICE-кандидатов
-    peerConnection.onicecandidate = event => {
-        if (event.candidate) {
-            console.log('Новый ICE-кандидат:', event.candidate);
-        } else {
-            console.log('Все ICE-кандидаты переданы');
         }
     };
 
@@ -154,4 +182,19 @@ document.getElementById('answer').oninput = async () => {
         console.error('Ошибка при обработке answer:', error);
         alert('Неверный формат answer. Убедитесь, что вы вставили правильный ответ.');
     }
+};
+
+// Обработка входящих ICE-кандидатов
+document.getElementById('applyIceCandidates').onclick = () => {
+    const candidates = document.getElementById('iceCandidates').value.split('\n');
+    candidates.forEach(candidate => {
+        if (candidate.trim() !== '') {
+            try {
+                peerConnection.addIceCandidate(new RTCIceCandidate(JSON.parse(candidate)));
+                console.log('ICE-кандидат добавлен:', candidate);
+            } catch (error) {
+                console.error('Ошибка при добавлении ICE-кандидата:', error);
+            }
+        }
+    });
 };
