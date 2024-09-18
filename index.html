@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Танковая арена</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="controls">
+        <button id="startButton">Запустить сессию (хост)</button>
+        <button id="joinButton">Присоединиться к сессии (гость)</button>
+        <div class="input-group">
+            <textarea id="offer" placeholder="Скопируйте и отправьте это предложение другому игроку"></textarea>
+        </div>
+        <div class="input-group">
+            <textarea id="answer" placeholder="Вставьте сюда ответ"></textarea>
+        </div>
+    </div>
+    <script src="game.js"></script>
+    <script src="webrtc.js"></script>
+</body>
+</html>
