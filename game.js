@@ -15,6 +15,8 @@ let bullets = [];
 let tanks = []; // Массив танков
 let lastShotTime = 0; // Время последнего выстрела
 
+let isHost = false;
+
 // Управление с клавиатуры
 const keys = {
     ArrowUp: false,
@@ -23,9 +25,6 @@ const keys = {
     ArrowRight: false,
     KeyV: false, // Клавиша для выстрела "V"
 };
-
-let peerConnection;
-let isHost = false;
 
 // Создание танка
 function createTank(x, y, angle = 0) {
@@ -95,7 +94,7 @@ function shootBullet(tankIndex) {
     }
 }
 
-// Обновление позиции игрока (первого танка)
+// Обновление положения танка игрока
 function updatePlayerTank() {
     const playerTank = tanks[0];
 
@@ -125,14 +124,13 @@ function updateBullets() {
         bullet.x += Math.cos(bullet.angle * Math.PI / 180) * bullet.speed;
         bullet.y += Math.sin(bullet.angle * Math.PI / 180) * bullet.speed;
 
-        // Удаляем снаряд, если он выходит за границы канваса
         if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
             bullets.splice(index, 1);
         }
     });
 }
 
-// Функция для отрисовки снарядов
+// Отрисовка снарядов
 function drawBullets() {
     bullets.forEach(bullet => {
         ctx.beginPath();
@@ -143,9 +141,10 @@ function drawBullets() {
     });
 }
 
-// Функция для передачи состояния игры другому игроку
+// Отправка состояния игры
 function sendGameState() {
-    if (peerConnection && peerConnection.dataChannel) {
+    // Проверяем, инициализирован ли dataChannel и открыт ли канал
+    if (typeof dataChannel !== 'undefined' && dataChannel.readyState === 'open') {
         const gameState = {
             tank: {
                 x: tanks[0].x,
@@ -156,7 +155,7 @@ function sendGameState() {
             bullets
         };
 
-        peerConnection.dataChannel.send(JSON.stringify(gameState));
+        dataChannel.send(JSON.stringify(gameState));
     }
 }
 

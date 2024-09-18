@@ -1,8 +1,5 @@
 let peerConnection;
-const startButton = document.getElementById('startButton');
-const joinButton = document.getElementById('joinButton');
-const offerTextarea = document.getElementById('offer');
-const answerTextarea = document.getElementById('answer');
+let dataChannel; // Глобальная переменная для dataChannel
 
 // Конфигурация STUN сервера для WebRTC
 const configuration = {
@@ -33,12 +30,12 @@ function createPeerConnection() {
 function handleMessage(event) {
     const data = JSON.parse(event.data);
     console.log('Полученные данные:', data);
-    // Здесь будет обработка движения танков, выстрелов и состояния игры
+    // Здесь можно добавить вызов функции для обновления состояния игры в game.js
 }
 
 // Создаем канал данных для передачи сообщений между игроками
 function createDataChannel() {
-    const dataChannel = peerConnection.createDataChannel('gameData');
+    dataChannel = peerConnection.createDataChannel('gameData');
 
     dataChannel.onopen = () => {
         console.log('Data channel открыт');
@@ -50,31 +47,31 @@ function createDataChannel() {
 }
 
 // Хост: запускает сессию
-startButton.onclick = async () => {
+document.getElementById('startButton').onclick = async () => {
     peerConnection = createPeerConnection();
-    const dataChannel = createDataChannel();
+    createDataChannel();
 
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
     
-    offerTextarea.value = JSON.stringify(offer);
+    document.getElementById('offer').value = JSON.stringify(offer);
 };
 
 // Гость: присоединяется к сессии
-joinButton.onclick = async () => {
+document.getElementById('joinButton').onclick = async () => {
     peerConnection = createPeerConnection();
 
-    const offer = JSON.parse(offerTextarea.value);
+    const offer = JSON.parse(document.getElementById('offer').value);
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
 
-    answerTextarea.value = JSON.stringify(answer);
+    document.getElementById('answer').value = JSON.stringify(answer);
 };
 
 // Установить ответ хоста
-answerTextarea.oninput = async () => {
-    const answer = JSON.parse(answerTextarea.value);
+document.getElementById('answer').oninput = async () => {
+    const answer = JSON.parse(document.getElementById('answer').value);
     await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
 };
