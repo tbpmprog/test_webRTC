@@ -8,6 +8,12 @@ body {
     color: white;
 }
 
+#status {
+    margin-top: 10px;
+    font-size: 18px;
+    color: yellow;
+}
+
 canvas {
     border: 2px solid #fff;
     background-color: #34495e;

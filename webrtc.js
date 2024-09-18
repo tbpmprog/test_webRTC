@@ -1,5 +1,6 @@
 let peerConnection;
-let dataChannel; // Глобальная переменная для dataChannel
+let dataChannel;
+let isHost = false; // Теперь isHost объявляется здесь
 
 // Конфигурация STUN сервера для WebRTC
 const configuration = {
@@ -10,6 +11,14 @@ const configuration = {
 function createPeerConnection() {
     peerConnection = new RTCPeerConnection(configuration);
 
+    // Слушаем изменения состояния соединения
+    peerConnection.onconnectionstatechange = () => {
+        if (peerConnection.connectionState === 'connected') {
+            console.log('Соединение успешно установлено');
+            alert('Соединение успешно установлено!');
+        }
+    };
+
     // ICE кандидаты
     peerConnection.onicecandidate = event => {
         if (event.candidate) {
@@ -17,10 +26,24 @@ function createPeerConnection() {
         }
     };
 
-    // Получаем данные от другого игрока
+    // Получаем канал данных от другого игрока
     peerConnection.ondatachannel = event => {
-        const receiveChannel = event.channel;
-        receiveChannel.onmessage = handleMessage;
+        dataChannel = event.channel;
+
+        // Сообщаем, что канал данных открыт
+        dataChannel.onopen = () => {
+            console.log('Канал данных открыт!');
+            alert('Канал данных открыт, соединение установлено!');
+        };
+
+        // Сообщаем, что канал данных закрыт
+        dataChannel.onclose = () => {
+            console.log('Канал данных закрыт');
+            alert('Канал данных закрыт!');
+        };
+
+        // Получаем сообщения от другого игрока
+        dataChannel.onmessage = handleMessage;
     };
 
     return peerConnection;
@@ -30,15 +53,22 @@ function createPeerConnection() {
 function handleMessage(event) {
     const data = JSON.parse(event.data);
     console.log('Полученные данные:', data);
-    // Здесь можно добавить вызов функции для обновления состояния игры в game.js
 }
 
 // Создаем канал данных для передачи сообщений между игроками
 function createDataChannel() {
     dataChannel = peerConnection.createDataChannel('gameData');
 
+    // Сообщаем, что канал данных открыт
     dataChannel.onopen = () => {
-        console.log('Data channel открыт');
+        console.log('Канал данных открыт!');
+        alert('Канал данных открыт, соединение установлено!');
+    };
+
+    // Сообщаем, что канал данных закрыт
+    dataChannel.onclose = () => {
+        console.log('Канал данных закрыт');
+        alert('Канал данных закрыт!');
     };
 
     dataChannel.onmessage = handleMessage;
@@ -48,30 +78,55 @@ function createDataChannel() {
 
 // Хост: запускает сессию
 document.getElementById('startButton').onclick = async () => {
+    isHost = true; // Хост задается здесь
     peerConnection = createPeerConnection();
     createDataChannel();
 
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
-    
+
     document.getElementById('offer').value = JSON.stringify(offer);
 };
 
 // Гость: присоединяется к сессии
 document.getElementById('joinButton').onclick = async () => {
-    peerConnection = createPeerConnection();
+    isHost = false; // Устанавливаем, что этот игрок — не хост
+    const offerText = document.getElementById('offer').value.trim();
 
-    const offer = JSON.parse(document.getElementById('offer').value);
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+    if (!offerText) {
+        alert('Поле "offer" не может быть пустым!');
+        return;
+    }
 
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
+    try {
+        const offer = JSON.parse(offerText);
+        peerConnection = createPeerConnection();
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
-    document.getElementById('answer').value = JSON.stringify(answer);
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        document.getElementById('answer').value = JSON.stringify(answer);
+    } catch (error) {
+        console.error('Ошибка при парсинге offer:', error);
+        alert('Неверный формат offer. Убедитесь, что вы вставили правильное предложение.');
+    }
 };
 
 // Установить ответ хоста
 document.getElementById('answer').oninput = async () => {
-    const answer = JSON.parse(document.getElementById('answer').value);
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    const answerText = document.getElementById('answer').value.trim();
+
+    if (!answerText) {
+        alert('Поле "answer" не может быть пустым!');
+        return;
+    }
+
+    try {
+        const answer = JSON.parse(answerText);
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    } catch (error) {
+        console.error('Ошибка при парсинге answer:', error);
+        alert('Неверный формат answer. Убедитесь, что вы вставили правильный ответ.');
+    }
 };

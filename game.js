@@ -15,8 +15,6 @@ let bullets = [];
 let tanks = []; // Массив танков
 let lastShotTime = 0; // Время последнего выстрела
 
-let isHost = false;
-
 // Управление с клавиатуры
 const keys = {
     ArrowUp: false,
@@ -143,7 +141,6 @@ function drawBullets() {
 
 // Отправка состояния игры
 function sendGameState() {
-    // Проверяем, инициализирован ли dataChannel и открыт ли канал
     if (typeof dataChannel !== 'undefined' && dataChannel.readyState === 'open') {
         const gameState = {
             tank: {
